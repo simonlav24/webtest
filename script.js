@@ -13,10 +13,16 @@ scene.add(cube);
 
 camera.position.z = 5;
 
+// Add interactivity (mouse movement to rotate the cube)
+document.addEventListener('mousemove', (event) => {
+  cube.rotation.x = event.clientY / window.innerHeight * Math.PI;
+  cube.rotation.y = event.clientX / window.innerWidth * Math.PI;
+});
+
 // Animation loop
 function animate() {
   requestAnimationFrame(animate);
-  cube.rotation.x += 0.01;
+  cube.rotation.x += 0.01; // Keeps the cube rotating slowly
   cube.rotation.y += 0.01;
   renderer.render(scene, camera);
 }
