@@ -20,7 +20,7 @@ camera.position.z = 500;
 
 
 const loader = new OBJLoader();
-let path = 'models/simonThreejs.obj';
+let path = 'models/simonThreeJs.obj';
 
 let loadedObject;
 
