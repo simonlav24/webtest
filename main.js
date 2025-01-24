@@ -55,7 +55,8 @@ scene.add(light);
 function animate() {
 	renderer.render( scene, camera );
 
-    loadedObject.rotation.y += 0.01;
+    if(loadedObject)
+        loadedObject.rotation.y += 0.01;
 
 }
 renderer.setAnimationLoop( animate );
