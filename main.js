@@ -1,15 +1,24 @@
 import * as THREE from 'three';
 //import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+
 import { detectFlick } from './src/gestures.js';
+import { handleLoadError} from './src/loading.js';
+
+import {animateChair} from './src/animateOfficeRoom.js';
+
 
 window.addEventListener('resize', onWindowResize, false);
+
+const clock = new THREE.Clock();
+clock.start();
 
 const scene = new THREE.Scene();
 //const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
 const aspect = window.innerWidth / window.innerHeight;
-const frustumSize = 500; // Size of the camera frustum
+const frustumSize = 200; // Size of the camera frustum
 
 // camera
 const camera = new THREE.OrthographicCamera(
@@ -24,67 +33,76 @@ const camera = new THREE.OrthographicCamera(
 camera.position.set(500, 250, 500); // Adjust to your scene size
 camera.lookAt(0, 0, 0); // Point the camera at the center of the scene
 
-const renderer = new THREE.WebGLRenderer();
+// Renderer
+const renderer = new THREE.WebGLRenderer({antialias: true});
+//const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
+renderer.setPixelRatio(2);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1;
+//renderer.setPixelRatio(0.8);
 document.body.appendChild( renderer.domElement );
+
+scene.background = new THREE.Color(0x87ceeb);
 
 
 
 // light
-const ambientLight = new THREE.AmbientLight(0xbaf7ff, 0.1);
-//scene.add(ambientLight);
+const light = new THREE.DirectionalLight( 0xffffff, 2);
+light.position.set( -50, 100, 50 );
+light.power = 10000;
+scene.add( light );
 
-const light = new THREE.DirectionalLight(0xfffede, 1);
-light.position.set(0, 5, 5).normalize();
-//scene.add(light);
-
-const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x8d8d8d, 2 );
-hemiLight.position.set( 0, 100, 0 );
-scene.add( hemiLight );
-
+const ambient = new THREE.AmbientLight( 0xffffff, 0.8 );
+scene.add( ambient );
 
 camera.position.z = 500;
+camera.position.y = 280;
 
 
-const loader = new OBJLoader();
-let path = 'models/simonThreeJs.obj';
+const loader = new FBXLoader();
+let path = 'models/mobileyeroom.fbx'; // latest working one
 
 let loadedObject;
-let laptop;
 
-let group = new THREE.Group();
-scene.add(group);
+let roattedRoomGroup = new THREE.Group();
+scene.add(roattedRoomGroup);
 
+let chairGroup;
+let animationMixer;
 
 loader.load(
     // resource URL
     path,
     // called when resource is loaded
     function ( object ) {
-        
-        console.log(object);
+    
         loadedObject = object;
-        group.add( object );
+        let scaleFactor = 0.5
+        loadedObject.scale.set(scaleFactor, scaleFactor, scaleFactor);
+        
+        roattedRoomGroup.add( loadedObject );
+        
 
-        laptop = object.getObjectByName('simon laptop'); 
+        loadedObject.traverse((child) => {
+            if (child.isMesh) {
+                child.material.side = THREE.DoubleSide;
+            }
 
-        laptop.castShadow = true; // Enable shadow casting
+            //console.log(child.name);
+            if(child.name == 'ShahafAndChair')
+            {
+                chairGroup = child;
+            }
 
-        object.getObjectByName('Cube').receiveShadow = true; // Enable shadow receiving
-
+          });
     },
     // called when loading is in progress
     function ( xhr ) {
 
-        //console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-
     },
     // called when loading has errors
-    function ( error ) {
-
-        console.log( 'An error happened' );
-
-    }
+    handleLoadError
 );
 
 // listeners
@@ -142,18 +160,15 @@ function animate() {
     //controls.update();
 	renderer.render( scene, camera );
 
-    //if(loadedObject)
-        //loadedObject.rotation.y += 0.01;
-
-    if(laptop)
-    {
-        laptop.axis = new THREE.Vector3(100, 100, 0);
-        laptop.rotation.y += 0.01;
-    }
-
-    if(group)
+    if(roattedRoomGroup)
     {
         //group.rotation.y += 0.01;
+    }
+
+    if(chairGroup)
+    {
+        animateChair(chairGroup, clock);
+        //chairGroup.rotation.y += 0.01;
     }
 
     if(animatingRoom)
@@ -161,12 +176,12 @@ function animate() {
         if(rightFlick)
         {
             roomRotation += 0.1;
-            group.rotation.y = roomRotation;
+            roattedRoomGroup.rotation.y = roomRotation;
         }
         if (leftFlick)
         {
             roomRotation -= 0.1;
-            group.rotation.y = roomRotation;
+            roattedRoomGroup.rotation.y = roomRotation;
         }
         if(roomRotation >= Math.PI * 2 || roomRotation <= -Math.PI * 2)
         {
@@ -181,13 +196,13 @@ function animate() {
 
 function onWindowResize() {
 
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-
-    console.log( 'resize' );
-
     renderer.setSize( window.innerWidth, window.innerHeight );
+    
+    let newAspect = window.innerWidth / window.innerHeight;
+    camera.left = -newAspect * frustumSize / 2;
+    camera.right = newAspect * frustumSize  / 2;
 
+    camera.updateProjectionMatrix();
 }
 
 renderer.setAnimationLoop( animate );
