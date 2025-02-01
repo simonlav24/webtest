@@ -6,13 +6,12 @@ import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 import { detectFlick } from './src/gestures.js';
 import { handleLoadError} from './src/loading.js';
 
-import {animateChair} from './src/animateOfficeRoom.js';
+import {createChairAnimation} from './src/animateOfficeRoom.js';
 
 
 window.addEventListener('resize', onWindowResize, false);
 
 const clock = new THREE.Clock();
-clock.start();
 
 const scene = new THREE.Scene();
 //const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -52,8 +51,12 @@ const light = new THREE.DirectionalLight( 0xffffff, 2);
 light.position.set( -50, 100, 50 );
 light.power = 10000;
 scene.add( light );
+const light2 = new THREE.DirectionalLight( 0xffffff, 2);
+light2.position.set( -50, 100, -50 );
+light2.power = 10000;
+scene.add( light2 );
 
-const ambient = new THREE.AmbientLight( 0xffffff, 0.8 );
+const ambient = new THREE.AmbientLight( 0xffffff, 1.2 );
 scene.add( ambient );
 
 camera.position.z = 500;
@@ -69,7 +72,7 @@ let roattedRoomGroup = new THREE.Group();
 scene.add(roattedRoomGroup);
 
 let chairGroup;
-let animationMixer;
+let chairAnimationMixer;
 
 loader.load(
     // resource URL
@@ -82,7 +85,6 @@ loader.load(
         loadedObject.scale.set(scaleFactor, scaleFactor, scaleFactor);
         
         roattedRoomGroup.add( loadedObject );
-        
 
         loadedObject.traverse((child) => {
             if (child.isMesh) {
@@ -93,6 +95,7 @@ loader.load(
             if(child.name == 'ShahafAndChair')
             {
                 chairGroup = child;
+                chairAnimationMixer = createChairAnimation(chairGroup); 
             }
 
           });
@@ -115,6 +118,7 @@ let roomRotation = 0;
 let mouseStartX = 0;
 let mouseStartY = 0;
 let mouseStartTime = 0;
+
 
 document.addEventListener('mousedown', (e) => {
     mouseStartX = e.clientX;
@@ -158,17 +162,12 @@ function handleFlick(startX, startY, endX, endY, startTime, endTime) {
 
 function animate() {
     //controls.update();
-	renderer.render( scene, camera );
+    //requestAnimationFrame(animate);
 
-    if(roattedRoomGroup)
+    const delta = clock.getDelta();
+    if(chairAnimationMixer)
     {
-        //group.rotation.y += 0.01;
-    }
-
-    if(chairGroup)
-    {
-        animateChair(chairGroup, clock);
-        //chairGroup.rotation.y += 0.01;
+        chairAnimationMixer.update(delta);
     }
 
     if(animatingRoom)
@@ -191,6 +190,8 @@ function animate() {
             roomRotation = 0;
         }
     }
+
+    renderer.render( scene, camera );
 
 }
 
